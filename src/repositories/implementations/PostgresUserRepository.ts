@@ -1,6 +1,7 @@
 import { User } from '../../entities/User';
 import { ICreateUserDto } from '../../useCases/CreaseUser/CreateUserDto';
 import { IUsersRepository } from '../IUsersRepository';
+
 export class PostgresUserRepository implements IUsersRepository {
 
     async save(data: ICreateUserDto): Promise<User> {
