@@ -1,20 +1,20 @@
 services:
   db:
-    image: postgres:latest
+    image: postgres:16.2
     restart: always
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    # volumes:
+    #   - postgres_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: customerManagement
       POSTGRES_USER: sandro
       POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432"
+      - 5432:5432
   api:
     build: .
     command: npm start
     ports:
-      - "3000:3000"
+      - 3000:3000
     depends_on:
       - db
 volumes:
