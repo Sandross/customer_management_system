@@ -7,7 +7,7 @@ export class PostgresUserRepository implements IUsersRepository {
 
 async save({ name, email, phone, xCoordinate, yCoordinate }: ICreateUserDto): Promise<User> {
     const result = await query(
-        'INSERT INTO users (name, email, phone, x, y) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        'INSERT INTO users (name, email, phone, xCoordinate, yCoordinate) VALUES ($1, $2, $3, $4, $5) RETURNING *',
         [name, email, phone, xCoordinate, yCoordinate]
     );
     return result.rows[0];
@@ -16,6 +16,7 @@ async save({ name, email, phone, xCoordinate, yCoordinate }: ICreateUserDto): Pr
     let queryString = 'SELECT * FROM users WHERE 1=1';
     const values = [];
     let index = 1;
+
     for (const [key, value] of Object.entries(filters || {})) {
         if (value !== undefined) {
             if (key === 'name' || key === 'email') {
@@ -24,8 +25,11 @@ async save({ name, email, phone, xCoordinate, yCoordinate }: ICreateUserDto): Pr
             } else if (key === 'phone') {
                 queryString += ` AND ${key} = $${index++}`;
                 values.push(value);
-            } else if (key === 'xCoordinate' || key === 'yCoordinate') {
-                queryString += ` AND ${key[0]} = $${index++}`;
+            } else if (key === 'xCoordinate') {
+                queryString += ` AND xCoordinate = $${index++}`;
+                values.push(value);
+            } else if (key === 'yCoordinate') {
+                queryString += ` AND yCoordinate = $${index++}`;
                 values.push(value);
             }
         }

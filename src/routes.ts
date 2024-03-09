@@ -7,7 +7,12 @@ const router = Router();
 
 // Rota para criar um novo usuário
 router.post('/users', (req, res) => {
-   return createUserController.handle(req, res);
+    try {
+        return createUserController.handle(req, res);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Rota para filtrar usuários
