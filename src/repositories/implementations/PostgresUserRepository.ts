@@ -12,42 +12,58 @@ async save({ name, email, phone, xCoordinate, yCoordinate }: ICreateUserDto): Pr
     );
     return result.rows[0];
 }
-
-  async findUsersByFilters({ name, email, phone, xCoordinate, yCoordinate }: Partial<ICreateUserDto>): Promise<User[]> {
-        // Iniciar a consulta com a base que sempre será verdadeira para poder adicionar ANDs facilmente
-        let queryString = 'SELECT * FROM users WHERE 1=1';
-        const values = [];
-        let index = 1;
-
-        // Adiciona cláusulas WHERE dinamicamente com base nos filtros fornecidos
-        if (name) {
-            queryString += ` AND name ILIKE $${index++}`;
-            values.push(`%${name}%`);
+  async findUsersByFilters(filters?: Partial<ICreateUserDto>): Promise<User[]> {
+    let queryString = 'SELECT * FROM users WHERE 1=1';
+    const values = [];
+    let index = 1;
+    for (const [key, value] of Object.entries(filters || {})) {
+        if (value !== undefined) {
+            if (key === 'name' || key === 'email') {
+                queryString += ` AND ${key} ILIKE $${index++}`;
+                values.push(`%${value}%`);
+            } else if (key === 'phone') {
+                queryString += ` AND ${key} = $${index++}`;
+                values.push(value);
+            } else if (key === 'xCoordinate' || key === 'yCoordinate') {
+                queryString += ` AND ${key[0]} = $${index++}`;
+                values.push(value);
+            }
         }
-        if (email) {
-            queryString += ` AND email ILIKE $${index++}`;
-            values.push(`%${email}%`);
-        }
-        if (phone) {
-            queryString += ` AND phone = $${index++}`;
-            values.push(phone);
-        }
-        if (xCoordinate !== undefined) { // Verifica explicitamente undefined para permitir coordenadas 0
-            queryString += ` AND x = $${index++}`;
-            values.push(xCoordinate);
-        }
-        if (yCoordinate !== undefined) { // Mesma lógica que xCoordinate
-            queryString += ` AND y = $${index++}`;
-            values.push(yCoordinate);
-        }
-
-        // Executa a consulta com os filtros dinâmicos
-        const result = await query(queryString, values);
-        return result.rows;
     }
+
+    const result = await query(queryString, values);
+    return result.rows;
 }
 
     calculateDistanceBetweenTwoUsers(user1: User, user2: User): number {
-        //calculo de distancia
+    const distance = Math.sqrt(Math.pow(user1.xCoordinate - user2.xCoordinate, 2) + Math.pow(user1.yCoordinate - user2.yCoordinate, 2));
+    return distance;
     }
+
+async calculateOptimizedRoute(): Promise<{ route: User[]; totalDistance: number; }> {
+        let clients: User[] = await this.findUsersByFilters();
+        const startPoint: User = { id: 'company', name: 'Company', email: '', phone: '', xCoordinate: 0, yCoordinate: 0 };
+        let currentPoint: User = startPoint;
+        let route: User[] = [];
+        let totalDistance = 0;
+
+        while (clients.length > 0) {
+            let nearestIndex = clients.reduce((nearestIdx, client, idx) => {
+                const distance = this.calculateDistanceBetweenTwoUsers(currentPoint, client);
+                return distance < this.calculateDistanceBetweenTwoUsers(currentPoint, clients[nearestIdx]) ? idx : nearestIdx;
+            }, 0);
+
+            const nearestClient = clients[nearestIndex];
+            totalDistance += this.calculateDistanceBetweenTwoUsers(currentPoint, nearestClient);
+            route.push(nearestClient);
+            currentPoint = nearestClient;
+            clients.splice(nearestIndex, 1);
+        }
+
+        // Adiciona a distância de retorno à empresa
+        totalDistance += this.calculateDistanceBetweenTwoUsers(currentPoint, startPoint);
+
+        return { route, totalDistance };
+    }
+    
 }
